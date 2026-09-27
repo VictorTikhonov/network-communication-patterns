@@ -16,15 +16,19 @@
         </encoder>
     </appender>
 
-    <!-- Task 1: TCP blocking -->
-    <logger name="ru.tikhonov.task_1.TcpServer" level="INFO"/>
+    <!-- ============ HOT-PATH: WARN для замеров ============ -->
 
-    <!-- Task 3: gRPC -->
+    <!-- Task 1: TCP blocking — лог каждого ответа в handleClient -->
+    <logger name="ru.tikhonov.task_1.TcpServer" level="WARN"/>
+
+    <!-- Task 3: gRPC — лог каждого onNext -->
+    <logger name="ru.tikhonov.task_3.EchoServiceImpl" level="WARN"/>
+
+    <!-- Старт/стоп серверов — оставляем INFO, их мало -->
     <logger name="ru.tikhonov.task_3.GrpcServer" level="INFO"/>
-    <logger name="ru.tikhonov.task_3.EchoServiceImpl" level="INFO"/>
 
-    <!-- Per-response TCP и Netty -->
-    <logger name="Benchmark.Server.Response" level="INFO" additivity="false">
+    <!-- Per-response TCP + Netty — лог каждого ответа -->
+    <logger name="Benchmark.Server.Response" level="WARN" additivity="false">
         <appender-ref ref="SERVER_RESPONSE"/>
     </logger>
 
