@@ -52,12 +52,11 @@ class BlockingBenchmark(
     ) {
         val client = connectWithRetry(clientId) ?: return
 
-        client.use { c ->
-            repeat(messagesPerClient) { messageIndex ->
+        client.use { client ->
+            repeat(messagesPerClient) {
                 executeRequest(
-                    client = c,
+                    client = client,
                     clientId = clientId,
-                    messageIndex = messageIndex,
                 )
             }
         }
@@ -93,9 +92,8 @@ class BlockingBenchmark(
     private fun executeRequest(
         client: TcpClient,
         clientId: Int,
-        messageIndex: Int,
     ) {
-        val message = "Message $messageIndex"
+        val message = "Message ${(0..1000000).random()}"
 
         val startTime = System.nanoTime()
         val response = client.sendMessage(message)

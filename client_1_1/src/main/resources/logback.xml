@@ -3,6 +3,31 @@
 
     <!-- ======================= APPENDERS ======================= -->
 
+    <appender name="SUMMARY" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger
+                message = %msg
+                max = %X{maxRTT_ms} ms
+                min = %X{minRTT_ms} ms
+                total = %X{totalRTT_ms} ms
+                avg = %X{averageRTT_ms} ms
+                p95 = %X{p95_ms} ms%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <appender name="REQUEST" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger
+                message = %msg
+                start = %X{startTime_ms} ms
+                end = %X{endTime_ms} ms
+                rtt = %X{rtt_ms} ms
+                server_time = %X{serverTime_s} s%n%n
+            </pattern>
+        </encoder>
+    </appender>
+
     <appender name="BLOCKING_SUMMARY" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger
@@ -11,7 +36,6 @@
                 messages_per_client = %X{messagesPerClient}
                 total_messages = %X{totalMessages}
                 wall_time = %X{wallTime_ms} ms
-                throughput = %X{throughput_msgPerSec} msg/s
                 total = %X{totalRTT_ms} ms
                 avg = %X{averageRTT_ms} ms
                 min = %X{minRTT_ms} ms
@@ -30,6 +54,22 @@
                 end = %X{endTime_ms} ms
                 rtt = %X{rtt_ms} ms
                 server_time = %X{serverTime_s} s%n%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <appender name="GRPC_SUMMARY" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger
+                message = %msg
+                sent = %X{sent}
+                received = %X{received}
+                total_time = %X{totalTime_ms} ms
+                avg_rtt = %X{avgRtt_ms} ms
+                throughput = %X{throughput_msgPerSec} msg/s
+                sequence_ok = %X{sequenceOk}
+                content_ok = %X{contentOk}
+                server_time_ok = %X{serverTimeOk}%n%n
             </pattern>
         </encoder>
     </appender>
@@ -65,22 +105,6 @@
         </encoder>
     </appender>
 
-    <appender name="GRPC_SUMMARY" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger
-                message = %msg
-                sent = %X{sent}
-                received = %X{received}
-                total_time = %X{totalTime_ms} ms
-                avg_rtt = %X{avgRtt_ms} ms
-                throughput = %X{throughput_msgPerSec} msg/s
-                sequence_ok = %X{sequenceOk}
-                content_ok = %X{contentOk}
-                server_time_ok = %X{serverTimeOk}%n%n
-            </pattern>
-        </encoder>
-    </appender>
-
     <appender name="DEFAULT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger -- %msg%n</pattern>
@@ -89,30 +113,35 @@
 
     <!-- ======================= LOGGERS ======================= -->
 
-    <!-- ============ Сводки: INFO ============ -->
-    <logger name="Benchmark.Blocking.Summary" level="INFO" additivity="false">
-        <appender-ref ref="BLOCKING_SUMMARY"/>
+    <!-- Сводки: INFO (1 запись в конце прогона) -->
+    <logger name="Benchmark.Summary" level="INFO" additivity="false">
+        <appender-ref ref="SUMMARY"/>
     </logger>
 
-    <logger name="Benchmark.Netty.Summary" level="INFO" additivity="false">
-        <appender-ref ref="NETTY_SUMMARY"/>
+    <logger name="Benchmark.Blocking.Summary" level="INFO" additivity="false">
+        <appender-ref ref="BLOCKING_SUMMARY"/>
     </logger>
 
     <logger name="Benchmark.Grpc.Summary" level="INFO" additivity="false">
         <appender-ref ref="GRPC_SUMMARY"/>
     </logger>
 
-    <!-- ============ HOT-PATH: OFF для замеров ============ -->
-    <!-- Appender привязан, чтобы Logback не ругался "not referenced" -->
-    <logger name="Benchmark.Blocking.Request" level="OFF" additivity="false">
+    <logger name="Benchmark.Netty.Summary" level="INFO" additivity="false">
+        <appender-ref ref="NETTY_SUMMARY"/>
+    </logger>
+
+    <logger name="Benchmark.Request" level="INFO" additivity="false">
+        <appender-ref ref="REQUEST"/>
+    </logger>
+
+    <logger name="Benchmark.Blocking.Request" level="INFO" additivity="false">
         <appender-ref ref="BLOCKING_REQUEST"/>
     </logger>
 
-    <logger name="Benchmark.Netty.Request" level="OFF" additivity="false">
+    <logger name="Benchmark.Netty.Request" level="INFO" additivity="false">
         <appender-ref ref="NETTY_REQUEST"/>
     </logger>
 
-    <!-- Retry TCP-клиента: DEBUG (не hot-path) -->
     <logger name="ru.tikhonov.benchmark.BlockingBenchmark" level="DEBUG" additivity="false">
         <appender-ref ref="DEFAULT"/>
     </logger>
