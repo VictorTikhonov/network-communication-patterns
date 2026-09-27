@@ -19,16 +19,16 @@
     <!-- ============ HOT-PATH: WARN для замеров ============ -->
 
     <!-- Task 1: TCP blocking — лог каждого ответа в handleClient -->
-    <logger name="ru.tikhonov.task_1.TcpServer" level="WARN"/>
+    <logger name="ru.tikhonov.task_1.TcpServer" level="INFO"/>
 
     <!-- Task 3: gRPC — лог каждого onNext -->
-    <logger name="ru.tikhonov.task_3.EchoServiceImpl" level="WARN"/>
+    <logger name="ru.tikhonov.task_3.EchoServiceImpl" level="INFO"/>
 
     <!-- Старт/стоп серверов — оставляем INFO, их мало -->
     <logger name="ru.tikhonov.task_3.GrpcServer" level="INFO"/>
 
     <!-- Per-response TCP + Netty — лог каждого ответа -->
-    <logger name="Benchmark.Server.Response" level="WARN" additivity="false">
+    <logger name="Benchmark.Server.Response" level="INFO" additivity="false">
         <appender-ref ref="SERVER_RESPONSE"/>
     </logger>
 
