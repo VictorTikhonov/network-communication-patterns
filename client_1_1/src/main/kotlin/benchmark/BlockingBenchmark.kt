@@ -16,12 +16,12 @@ class BlockingBenchmark(
 
     private val requestResults = ConcurrentLinkedQueue<RequestResult>()
 
-     override fun start(
+    override fun start(
         clientCount: Int,
-        messagesPerClient: Int
+        messagesPerClient: Int,
     ) {
         if (clientCount <= 0 || messagesPerClient <= 0) {
-            logger.warn { "Parallel benchmark not started" }
+            logger.warn { "Blocking benchmark not started" }
             return
         }
 
@@ -42,7 +42,7 @@ class BlockingBenchmark(
         logBenchmarkSummary(
             clientCount = clientCount,
             messagesPerClient = messagesPerClient,
-            wallNanos = wallEnd - wallStart
+            wallNanos = wallEnd - wallStart,
         )
     }
 
@@ -52,11 +52,12 @@ class BlockingBenchmark(
     ) {
         val client = connectWithRetry(clientId) ?: return
 
-        client.use { client ->
-            repeat(messagesPerClient) {
+        client.use { c ->
+            repeat(messagesPerClient) { messageIndex ->
                 executeRequest(
-                    client = client,
+                    client = c,
                     clientId = clientId,
+                    messageIndex = messageIndex,
                 )
             }
         }
@@ -92,37 +93,33 @@ class BlockingBenchmark(
     private fun executeRequest(
         client: TcpClient,
         clientId: Int,
+        messageIndex: Int,
     ) {
-        val message = "Message ${(0..1000000).random()}"
+        val message = "Message $messageIndex"
 
         val startTime = System.nanoTime()
         val response = client.sendMessage(message)
         val endTime = System.nanoTime()
 
+        // Сервер обязан вернуть ECHO: <сообщение>.
+        if (!response.startsWith("ECHO: $message")) {
+            throw RuntimeException("Invalid response: $response")
+        }
+
         val requestResult = RequestResult(
             startTime = startTime,
             endTime = endTime,
-            response = response
+            response = response,
         )
 
-        logRequestResult(
-            result = requestResult,
-            clientId = clientId,
-        )
-
+        logRequestResult(result = requestResult, clientId = clientId)
         requestResults.add(requestResult)
     }
 
-    private fun calculateP95(
-        requestResults: List<RequestResult>
-    ): Long {
-
-        val sortedRtt = requestResults
-            .map { it.rtt }
-            .sorted()
-
-        val p95Index = ceil(sortedRtt.size * 0.95).toInt() - 1
-        return sortedRtt[p95Index]
+    private fun calculateP95(results: List<RequestResult>): Long {
+        val sorted = results.map { it.rtt }.sorted()
+        val idx = ceil(sorted.size * 0.95).toInt() - 1
+        return sorted[idx]
     }
 
     private fun logRequestResult(
@@ -134,7 +131,7 @@ class BlockingBenchmark(
             "startTime_ms" to "%.3f".format(Locale.US, result.startTime / 1_000_000.0),
             "endTime_ms" to "%.3f".format(Locale.US, result.endTime / 1_000_000.0),
             "rtt_ms" to "%.3f".format(Locale.US, result.rtt / 1_000_000.0),
-            "serverTime_s" to result.serverTime
+            "serverTime_s" to result.serverTime,
         ) {
             requestLogger.info { result.response }
         }
@@ -148,12 +145,20 @@ class BlockingBenchmark(
         val results = requestResults.toList()
 
         if (results.isEmpty()) {
-            logger.warn { "Parallel benchmark: no results" }
+            logger.warn { "Blocking benchmark: no results" }
             return
+        }
+
+        val expectedMessages = clientCount * messagesPerClient
+        if (results.size != expectedMessages) {
+            logger.warn {
+                "Incomplete: expected $expectedMessages, got ${results.size}"
+            }
         }
 
         val totalMessages = results.size
         val wallTimeMs = wallNanos / 1_000_000.0
+        val throughput = totalMessages / (wallNanos / 1_000_000_000.0)
         val totalRTT = results.sumOf { it.rtt }
         val maxRTTms = results.maxOf { it.rtt } / 1_000_000.0
         val minRTTms = results.minOf { it.rtt } / 1_000_000.0
@@ -166,26 +171,20 @@ class BlockingBenchmark(
             "messagesPerClient" to messagesPerClient.toString(),
             "totalMessages" to totalMessages.toString(),
             "wallTime_ms" to "%.3f".format(Locale.US, wallTimeMs),
+            "throughput_msgPerSec" to "%.1f".format(Locale.US, throughput),
             "totalRTT_ms" to "%.3f".format(Locale.US, totalRTTms),
             "averageRTT_ms" to "%.3f".format(Locale.US, averageRTTms),
             "minRTT_ms" to "%.3f".format(Locale.US, minRTTms),
             "maxRTT_ms" to "%.3f".format(Locale.US, maxRTTms),
             "p95RTT_ms" to "%.3f".format(Locale.US, p95ms),
         ) {
-            summaryLogger.info {
-                "Parallel benchmark completed"
-            }
+            summaryLogger.info { "Blocking benchmark completed" }
         }
     }
 
     companion object {
-        private val summaryLogger =
-            KotlinLogging.logger("Benchmark.Parallel.Summary")
-
-        private val requestLogger =
-            KotlinLogging.logger("Benchmark.Parallel.Request")
-
-        private val logger =
-            KotlinLogging.logger {}
+        private val summaryLogger = KotlinLogging.logger("Benchmark.Blocking.Summary")
+        private val requestLogger = KotlinLogging.logger("Benchmark.Blocking.Request")
+        private val logger = KotlinLogging.logger {}
     }
 }

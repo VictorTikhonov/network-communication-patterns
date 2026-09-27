@@ -22,11 +22,6 @@ fun startBenchmark(benchmark: Benchmark) {
             continue
         }
 
-        logger.info {
-            "\n\n\n$clientCount клиентов по $messagesPerClient сообщений " +
-                    "(Всего ${clientCount * messagesPerClient} сообщений)"
-        }
-
         benchmark.start(
             clientCount = clientCount,
             messagesPerClient = messagesPerClient,
